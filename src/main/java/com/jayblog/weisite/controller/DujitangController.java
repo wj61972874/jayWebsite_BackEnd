@@ -1,5 +1,6 @@
 package com.jayblog.weisite.controller;
 
+import com.jayblog.weisite.common.ResponseBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,16 +19,21 @@ public class DujitangController {
     private RestTemplate restTemplate;
 
     @GetMapping("/dujitang/index")
-    public ResponseEntity<?> getDujitang() {
+    public ResponseBean<String> getDujitang() {
         String url = "https://apis.tianapi.com/dujitang/index?key=01fa7878b499ab53f6b6fe8ab77c1d2c";
         try {
             ResponseEntity<Map> response = restTemplate.postForEntity(url, null, Map.class);
-            return ResponseEntity.ok(response.getBody());
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && (int) responseBody.get("code") == 200) {
+                Map<String, String> result = (Map<String, String>) responseBody.get("result");
+                String content = result.get("content");
+                return ResponseBean.success(content);
+            } else {
+                return ResponseBean.success("用努力去喂养梦想，愿跌倒不哭，明媚如初，早安。");
+            }
         } catch (Exception e) {
             e.printStackTrace();
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Internal Server Error");
-            return ResponseEntity.status(500).body(errorResponse);
+            return ResponseBean.error("接口异常~");
         }
     }
 }

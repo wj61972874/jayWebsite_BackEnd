@@ -1,5 +1,6 @@
 package com.jayblog.weisite.service.impl;
 
+import com.jayblog.weisite.domain.Article;
 import com.jayblog.weisite.dto.ArticleDTO;
 import com.jayblog.weisite.repository.ArticleRepository;
 import com.jayblog.weisite.service.ArticleService;
@@ -11,11 +12,23 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ArticleServiceImpl implements ArticleService {
     @Autowired
     private ArticleRepository articleRepository;
+
+    @Override
+    public String getArticleMarkdownById(Long id) {
+        Optional<Article> article = articleRepository.findById(id);
+        System.out.println("article: " + article);
+        if (article.isPresent()) {
+            return article.get().getMarkdownSrc();
+        } else {
+            return null;
+        }
+    }
 
     @Override
     public List<ArticleDTO> getAllArticlesWithTags() {
