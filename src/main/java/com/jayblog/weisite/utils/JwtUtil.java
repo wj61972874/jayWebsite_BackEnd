@@ -1,4 +1,5 @@
 package com.jayblog.weisite.utils;
+
 import com.jayblog.weisite.domain.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -8,53 +9,36 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
 
 @Component
 public class JwtUtil {
 
     @Value("${jwt.secret}")
-    private String secret;
+    private String jwtSecret;
 
-    public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+    @Value("${jwt.expirationMs}")
+    private int jwtExpirationMs;
+
+    public String generateJwtToken(User userDetails) {
+        return Jwts.builder()
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .compact();
     }
 
-    public Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+    public String getUsernameFromJwtToken(String token) {
+        return Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token).getBody().getSubject();
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
-    }
-
-    public Claims extractAllClaims(String token) {
-        return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
-    }
-
-    public Boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
-    public Boolean validateToken(String token) {
-        return !isTokenExpired(token);
-    }
-
-    public String generateToken(User user) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("id", user.getId());
-        claims.put("username", user.getUsername());
-        claims.put("realName", user.getRealName());
-        claims.put("roles", user.getRoles().stream().map(role -> role.getRoleName()).toArray());
-        return createToken(claims, user.getUsername());
-    }
-
-    public String createToken(Map<String, Object> claims, String subject) {
-        return Jwts.builder().setClaims(claims).setSubject(subject).setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
-                .signWith(SignatureAlgorithm.HS256, secret).compact();
+    public boolean validateJwtToken(String authToken) {
+        try {
+            Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(authToken);
+            return true;
+        } catch (Exception e) {
+            // log the exception
+        }
+        return false;
     }
 }

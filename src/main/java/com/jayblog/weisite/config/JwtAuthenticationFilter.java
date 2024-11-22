@@ -1,6 +1,7 @@
 package com.jayblog.weisite.config;
 
 import com.jayblog.weisite.service.impl.ArticleServiceImpl;
+import com.jayblog.weisite.service.impl.CustomUserDetailsService;
 import com.jayblog.weisite.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -24,43 +25,36 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-
     @Autowired
     private JwtUtil jwtUtil;
 
     @Autowired
-    private UserDetailsService userDetailsService;
+    private CustomUserDetailsService customUserDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        String authorizationHeader = request.getHeader("Authorization");
+        String jwtToken = getJwtFromRequest(request);
 
-        String username = null;
-        String jwt = null;
+        if (jwtToken != null && jwtUtil.validateJwtToken(jwtToken)) {
+            String username = jwtUtil.getUsernameFromJwtToken(jwtToken);
 
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            jwt = authorizationHeader.substring(7);
-            logger.debug("jwt ==111 : {}", jwt);
-            username = jwtUtil.extractUsername(jwt);
-            logger.debug("jwt ==222: {}", username);
+            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    userDetails, null, userDetails.getAuthorities());
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            logger.debug("jwt ==333: {}", username);
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-            logger.debug("jwt == 444: {}", userDetails);
-            if (jwtUtil.validateToken(jwt)) {
-                logger.debug("jwt == 555: {}", userDetails);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                logger.debug("jwt == 666:");
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                logger.debug("jwt == 777:");
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+        filterChain.doFilter(request, response);
+    }
+
+    private String getJwtFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
         }
-        logger.debug("jwt == 888:");
-        chain.doFilter(request, response);
+        return null;
     }
 }

@@ -37,8 +37,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserInfoDto getUserFromToken(String token) {
         System.out.println("token=======: " +jwtSecret+"===="+ token);
-        Claims claims = jwtUtil.extractAllClaims(token);
-        String username = claims.getSubject();
+        String username = jwtUtil.getUsernameFromJwtToken(token);
         User user = userRepository.findByUsername(username);
         UserInfoDto userInfo = new UserInfoDto();
         System.out.println("user=======: " + user);
@@ -70,6 +69,6 @@ public class UserServiceImpl implements UserService {
     }
 
     private String generateAccessToken(User user) {
-        return jwtUtil.generateToken(user);
+        return jwtUtil.generateJwtToken(user);
     }
 }
