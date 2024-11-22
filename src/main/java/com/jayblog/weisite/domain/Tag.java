@@ -2,6 +2,9 @@ package com.jayblog.weisite.domain;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
 import java.util.Set;
 
 @Data
@@ -13,5 +16,7 @@ public class Tag {
     private String name;
 
     @ManyToMany(mappedBy = "tags")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Set<Article> articles;
 }

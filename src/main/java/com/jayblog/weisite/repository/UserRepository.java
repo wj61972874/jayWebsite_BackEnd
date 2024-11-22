@@ -3,6 +3,6 @@ package com.jayblog.weisite.repository;
 import com.jayblog.weisite.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRepository extends JpaRepository<User, Long> {
-
+public interface UserRepository extends JpaRepository<User, Integer> {
+    User findByUsername(String username);
 }
