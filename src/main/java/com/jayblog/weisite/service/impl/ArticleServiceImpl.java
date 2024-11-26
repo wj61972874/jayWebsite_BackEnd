@@ -2,8 +2,11 @@ package com.jayblog.weisite.service.impl;
 import com.jayblog.weisite.domain.Article;
 import com.jayblog.weisite.domain.Tag;
 import com.jayblog.weisite.dto.ArticleDTO;
+import com.jayblog.weisite.dto.ArticleEditDto;
 import com.jayblog.weisite.dto.ArticlesQueryDto;
+import com.jayblog.weisite.dto.TagDto;
 import com.jayblog.weisite.repository.ArticleRepository;
+import com.jayblog.weisite.repository.TagRepository;
 import com.jayblog.weisite.service.ArticleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageImpl;
@@ -25,6 +28,9 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Autowired
     private ArticleRepository articleRepository;
+
+    @Autowired
+    private TagRepository tagRepository;
 
     @Override
     public String getArticleMarkdownById(Long id) {
@@ -73,6 +79,41 @@ public Page<ArticleDTO> getArticlesByFilter(ArticlesQueryDto articlesQueryDto) {
 
     return new PageImpl<>(articleDTOs, pageable, articleDTOs.size());
 }
+
+    @Override
+    public List<TagDto> getTags() {
+        List<Tag> tags = tagRepository.findAll();
+        logger.debug("Fetched tags: {}", tags);
+        return tags.stream().map(tag -> new TagDto(tag.getId(), tag.getName())).collect(Collectors.toList());
+    }
+
+    @Override
+    public void saveOrUpdateArticle(ArticleEditDto articleEditDto) {
+        Article article;
+        if(articleEditDto.getId() != null) {
+            article = articleRepository.findById(articleEditDto.getId()).orElse(new Article());
+        }else {
+            article = new Article();
+            article.setCreatedAt(LocalDateTime.now());
+        }
+
+        article.setTitle(articleEditDto.getTitle());
+        article.setDescription(articleEditDto.getDescription());
+        article.setMarkdownSrc(articleEditDto.getMarkdownSrc());
+        article.setUpdatedAt(LocalDateTime.now());
+
+        Set<Tag> tags = new HashSet<>();
+        for(String tagName: articleEditDto.getTags()) {
+            Tag tag = tagRepository.findByName(tagName).orElseGet(() -> {
+                Tag newTag = new Tag();
+                newTag.setName(tagName);
+                return tagRepository.save(newTag);
+            });
+            tags.add(tag);
+        }
+        article.setTags(tags);
+        articleRepository.save(article);
+    }
 
     private ArticleDTO convertToDto(Article article) {
         ArticleDTO articleDTO = new ArticleDTO();
