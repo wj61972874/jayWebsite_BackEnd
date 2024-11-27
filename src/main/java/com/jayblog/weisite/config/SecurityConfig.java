@@ -35,6 +35,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/manage/user/auth/login").permitAll() // 允许访问登录接口
                         .requestMatchers("/api/jayBlog/**").permitAll() // 允许访问博客接口
+                        .requestMatchers("/api/analytics/**").permitAll() // 允许访问数据埋点接口
                         .anyRequest().authenticated() // 其他请求需要认证
                 )
                 .userDetailsService(customUserDetailsService) // 使用自定义的 UserDetailsService
